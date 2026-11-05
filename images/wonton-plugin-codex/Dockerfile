@@ -12,16 +12,16 @@ ARG CODEX_CLI_X64_SHA512=9fedba3148fcade91b10351e6131a80fa1d7b864b43262c79f62ce9
 ARG CODEX_CLI_ARM64_SHA512=477659ca6410035aa9a7a3a9a30378f57278b1c1f049c92aec28d5be098bbf76c8b375fe1745d72b7c4f1640bdbecda65f7c0f7a43e2dce369c71fb23c0b09e9
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl python3 xz-utils \
+    && apt-get install -y --no-install-recommends ca-certificates curl python3 \
     && rm -rf /var/lib/apt/lists/*
 RUN case "$TARGETARCH" in \
-      amd64) acp_pkg=codex-acp-linux-x64; acp_sha="$CODEX_ACP_X64_SHA512"; triple=x86_64-unknown-linux-musl; cli_pkg=0.137.0-linux-x64; cli_sha="$CODEX_CLI_X64_SHA512" ;; \
-      arm64) acp_pkg=codex-acp-linux-arm64; acp_sha="$CODEX_ACP_ARM64_SHA512"; triple=aarch64-unknown-linux-musl; cli_pkg=0.137.0-linux-arm64; cli_sha="$CODEX_CLI_ARM64_SHA512" ;; \
+      amd64) acp_pkg=codex-acp-linux-x64; acp_sha="$CODEX_ACP_X64_SHA512"; triple=x86_64-unknown-linux-musl; cli_pkg=${CODEX_CLI_VERSION}-linux-x64; cli_sha="$CODEX_CLI_X64_SHA512" ;; \
+      arm64) acp_pkg=codex-acp-linux-arm64; acp_sha="$CODEX_ACP_ARM64_SHA512"; triple=aarch64-unknown-linux-musl; cli_pkg=${CODEX_CLI_VERSION}-linux-arm64; cli_sha="$CODEX_CLI_ARM64_SHA512" ;; \
       *) echo "不支持的架构 $TARGETARCH" >&2; exit 1 ;; \
     esac \
     && mkdir -p /tmp/acp /tmp/cli \
     && curl --fail --silent --show-error --location \
-         "https://registry.npmjs.org/@zed-industries/codex-acp-linux-x64/-/${acp_pkg}-${CODEX_ACP_VERSION}.tgz" \
+         "https://registry.npmjs.org/@zed-industries/${acp_pkg}/-/${acp_pkg}-${CODEX_ACP_VERSION}.tgz" \
          --output /tmp/acp.tgz \
     && echo "$acp_sha  /tmp/acp.tgz" | sha512sum --check --strict \
     && curl --fail --silent --show-error --location \
@@ -36,7 +36,8 @@ RUN case "$TARGETARCH" in \
     && rm -rf /tmp/acp* /tmp/cli* \
     && mkdir -p /data/agent/home /workspace /data/run /usr/local/share/wonton-codex/skills /usr/share/doc/wonton-codex \
     && groupadd --system --gid 65532 wonton \
-    && useradd --system --uid 65532 --gid 65532 --no-create-home wonton
+    && useradd --system --uid 65532 --gid 65532 --no-create-home wonton \
+    && chown -R 65532:65532 /data/agent /workspace /data/run
 
 COPY agent-entrypoint.py /usr/local/bin/wonton-codex-agent
 COPY LICENSE.codex-acp LICENSE.codex /usr/share/doc/wonton-codex/
