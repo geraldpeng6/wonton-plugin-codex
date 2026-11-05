@@ -19,11 +19,8 @@ services:
       NO_BROWSER: "1"
       # 会话和 MCP 连接的日志进容器日志，出问题时能对着它排查。
       RUST_LOG: info
-      # 插件网络是内部网络，到模型网关和 MCP 总线都直连；Docker 注入的代理变量会让内部请求走代理，这里清掉。
-      HTTP_PROXY: ""
-      HTTPS_PROXY: ""
-      http_proxy: ""
-      https_proxy: ""
+      # 出网代理由核心注入（ADR-0023）：登录和登录后的官方模型请求经它出去，内部地址核心已写进
+      # NO_PROXY，不会绕道。这里不写代理变量，写了空值就会把核心的注入顶掉。
     volumes:
       - ${WONTON_BOT_DATA:?需要 Bot 数据目录}/agent:/data/agent
       - ${WONTON_BOT_DATA}/run:/data/run
@@ -57,10 +54,6 @@ services:
       # Codex 最严格可用的模式（ADR-0035 实测 read-only）：只读工作区，改文件和出网都先经确认卡片问主人。
       # 它自带的沙箱在普通 Docker 容器里建不了命名空间，更宽的模式不可用。
       WONTON_ACP_MODE: read-only
-      HTTP_PROXY: ""
-      HTTPS_PROXY: ""
-      http_proxy: ""
-      https_proxy: ""
     volumes:
       - ${WONTON_BOT_DATA}/bridge:/data/bridge
       - ${WONTON_BOT_DATA}/run:/data/run
