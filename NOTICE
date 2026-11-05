@@ -1,29 +1,41 @@
-图标
-====
+# Codex 插件声明
 
-`icon.svg` 为本仓库原创，按插件规范的线条风格手写，未用图片模型生成。从模板新建的插件换成自己的图标时，这里按实际情况重写。
+## 图标
 
-许可证
-------
+`icon.svg` 是按插件规范手绘的线条图标（终端提示符），原创，随插件包以本仓库的 MIT 许可证分发。
+Codex 和 OpenAI 是 OpenAI 的商标；本插件不是 OpenAI 或 Zed 的官方出品，也不表示得到它们的认可或背书。
+
+## 上游程序
+
+Agent 镜像里放的是官方 npm 包发布的 Linux 二进制，都按版本和 SHA-512（npm 的 dist.integrity）校验：
+
+- `codex-acp` 0.16.0（`@zed-industries/codex-acp-linux-x64`、`@zed-industries/codex-acp-linux-arm64`），
+  Zed Industries 的 ACP 适配器，内嵌 Codex 0.137.0（`codex rust-v0.137.0`）。来源
+  <https://registry.npmjs.org/@zed-industries/codex-acp>，仓库 <https://github.com/zed-industries/codex-acp>。
+- Codex CLI 0.137.0（`@openai/codex` 的 `linux-x64`、`linux-arm64` 平台包），官方账号的设备码登录
+  （`codex login --device-auth`）用的是它。来源 <https://registry.npmjs.org/@openai/codex>，仓库
+  <https://github.com/openai/codex>。
+
+镜像只加 `python3`（PSF-2.0）、`rg`（随上游 Codex 包分发）和 `ca-certificates`、`curl`（Debian 包），不修改上游程序。
+两个上游程序都是 Apache-2.0，许可证全文随镜像分发（`LICENSE.codex-acp`、`LICENSE.codex`）。
+
+`prompt.md` 取自 Codex `rust-v0.137.0` 的 `codex-rs/models-manager/prompt.md`（Apache-2.0）：Codex 对目录外的模型要求
+完整的模型元数据，入口脚本把它写进 `model_catalog_json` 的 `base_instructions`，否则每一轮都会把
+"Model metadata … not found" 警告当回复发出来。
+
+## 官方账号登录
+
+登录在 Codex 自己的程序里完成（`codex login --device-auth`，设备码方式），链接和设备码由桥发进聊天；登录态
+（`$CODEX_HOME/auth.json`）留在插件数据目录里。登录成功后模型请求直接发给 OpenAI，不经过模型网关，也不把订阅
+请求送进网关。条款与风险的讨论见 Wonton 主仓库的 ADR-0034。
+
+## ACP 桥镜像
+
+`ghcr.io/geraldpeng6/wonton-acp-bridge` 由 Wonton 主仓库构建，许可证随主仓库。桥只用标准 ACP 和 Matrix 客户端接口，
+不含任何厂商 Agent。
+
+## 许可证
 
 MIT License
 
 Copyright (c) 2026 Wonton plugin authors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.

@@ -1,74 +1,119 @@
-# 示例插件：nginx 显示一个网页，向登录的人问好。照着 README 的“写插件”换成你的应用。
+# Codex Agent：bridge 说 ACP，agent 跑固定版本的 codex-acp 和 Codex CLI。两个服务只共享 ACP socket 所在的
+# run/ 子目录；bridge 的 crypto store 和 Matrix 令牌不给 agent，agent 的 HOME 和工作区不给 bridge。
 services:
-  web:
-    # 镜像按摘要固定（多架构镜像写清单列表的摘要），标签只给人看。
-    image: nginx:1.30.6-alpine@sha256:0e52bd054126cdc040b1276c0af347aeb02a41b9cfe305d6094767ac30e97949
-    # 包里的文件经 configs 交给容器（核心在启动前写进去），不能用卷挂载。
-    configs:
-      - source: site
-        target: /etc/nginx/conf.d/default.conf
-      - source: page
-        target: /usr/share/nginx/html/index.html
-      - source: tokens
-        target: /usr/share/nginx/html/tokens.css
+  agent:
+    image: ghcr.io/geraldpeng6/wonton-plugin-codex:0.1.0@sha256:92ccbb3f15d4029056d0cdbdf8b54adb3f473d5f01d0005510603c80ad9bb19f
+    # 镜像里固定用 65532，入口脚本不再降权；bridge 挂同一个 run/ 目录，两个服务的属主必须相同，否则核心拒绝安装。
+    user: "65532:65532"
+    restart: unless-stopped
+    environment:
+      HOME: /data/agent/home
+      # 入口脚本把它们写进 Codex 的 config.toml（model_providers + model_catalog_json）；密钥只引用变量名。
+      OPENAI_BASE_URL: ${WONTON_MODEL_BASE_URL:?需要模型网关地址}
+      OPENAI_API_KEY: ${WONTON_MODEL_API_KEY:?需要模型网关凭据}
+      OPENAI_MODEL: ${WONTON_MODEL_DEFAULT:?需要默认模型}
+      WONTON_MCP_URL: ${WONTON_MCP_URL:?需要 MCP 总线地址}
+      WONTON_ACP_SOCKET: /data/run/acp.sock
+      WONTON_AGENT_WORKSPACE: /workspace
+      # 无浏览器的容器：官方登录走设备码（codex login --device-auth），不用开网页。
+      NO_BROWSER: "1"
+      # 插件网络是内部网络，到模型网关和 MCP 总线都直连；Docker 注入的代理变量会让内部请求走代理，这里清掉。
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+    volumes:
+      - ${WONTON_BOT_DATA:?需要 Bot 数据目录}/agent:/data/agent
+      - ${WONTON_BOT_DATA}/run:/data/run
+      - ${WONTON_BOT_DATA}/workspace:/workspace
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      # socket 是入口脚本建好 ACP 转发后才有的，有这个文件就说明 Agent 侧能接连接。
+      test: ["CMD", "test", "-S", "/data/run/acp.sock"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      start_interval: 2s
+
+  bridge:
+    image: ghcr.io/geraldpeng6/wonton-acp-bridge:0.1.0@sha256:52460dbb4ba202ca0b5710c19256ad952c51598950db4b2f0a678fd4650e0859
+    user: "65532:65532"
+    restart: unless-stopped
+    depends_on:
+      agent:
+        condition: service_started
+    environment:
+      HOME: /data/bridge
+      WONTON_BOT_DATA: /data
+      WONTON_BRIDGE_DATA: /data/bridge
+      WONTON_ACP_SOCKET: /data/run/acp.sock
+      WONTON_AGENT_WORKSPACE: /workspace
+      WONTON_MATRIX_HOMESERVER: ${WONTON_MATRIX_HOMESERVER:?需要 Matrix 地址}
+      WONTON_MATRIX_ACCESS_TOKEN: ${WONTON_MATRIX_ACCESS_TOKEN:?需要 Bot 的 Matrix 访问令牌}
+      WONTON_MATRIX_OWNER: ${WONTON_MATRIX_OWNER:?需要主人的 Matrix 用户 ID}
+      WONTON_MATRIX_HOME_ROOM: ${WONTON_MATRIX_HOME_ROOM:?需要主人与 Bot 的主房间}
+      WONTON_MCP_URL: ${WONTON_MCP_URL:?需要 MCP 总线地址}
+      # Codex 最严格可用的模式（ADR-0035 实测 read-only）：只读工作区，改文件和出网都先经确认卡片问主人。
+      # 它自带的沙箱在普通 Docker 容器里建不了命名空间，更宽的模式不可用。
+      WONTON_ACP_MODE: read-only
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+    volumes:
+      - ${WONTON_BOT_DATA}/bridge:/data/bridge
+      - ${WONTON_BOT_DATA}/run:/data/run
+    healthcheck:
+      test: ["CMD", "test", "-S", "/data/run/acp.sock"]
       interval: 30s
       timeout: 5s
       start_period: 30s
-      start_interval: 1s
-
-configs:
-  site:
-    file: web/default.conf
-  page:
-    file: web/index.html
-  tokens:
-    file: web/tokens.css
+      start_interval: 2s
 
 x-wonton:
-  spec: "0.5"
-  # 换成你自己的：反向域名形式，装上以后不能改。
-  id: app.example.hello
-  version: 0.1.1
-  kind: app
-  title: { zh: 你好, en: Hello }
-  description: { zh: 向登录的人问好的示例网页, en: An example page that greets whoever is signed in }
+  spec: "0.6"
+  id: ai.codex
+  version: 0.1.0
+  kind: agent
+  title: { zh: Codex, en: Codex }
+  description:
+    zh: OpenAI 的 Codex 编程 Agent，在聊天里按你的确认动手
+    en: OpenAI's Codex coding agent that acts in chat, asking before it acts
   icon: icon.svg
-  notices: [NOTICE]
   screenshots: [screenshots/home.png]
-  author: { name: Example }
-  homepage: https://nginx.org
-  # 应用（这里是 nginx）的许可证；插件包自己的许可证写在仓库的 LICENSE 里。
-  license: BSD-2-Clause
-  tags:
-    zh: [工具]
-    en: [Tools]
+  notices: [NOTICE, images/wonton-plugin-codex/LICENSE.codex-acp, images/wonton-plugin-codex/LICENSE.codex]
+  author: { name: Wonton plugin authors }
+  homepage: https://github.com/openai/codex
+  # Codex 上游的许可证；插件包自己的许可证在 LICENSE。
+  license: Apache-2.0
+  tags: { zh: [AI, 开发], en: [AI, Development] }
   about:
     zh: |
-      一个示例网页：登录以后，页面会向你问好。新建插件时可以照着改。
+      OpenAI Codex 以 Bot 的身份住进聊天：模型默认经模型网关走，不用账号，也不用填任何 key。
+      它住在自己的容器里，用只读沙箱工作，改文件、跑会出沙箱的命令之前经确认卡片问你；
+      Wonton 插件的工具也从聊天里调。要用 ChatGPT 订阅的话，在聊天里发 /wonton login 用设备码登录。
     en: |
-      An example page: once you are signed in, the page says hello. Copy it as a starting point for a new plugin.
-  release_notes: { zh: 名字和说明更新。, en: Product name and description update. }
-  webui:
-    service: web
-    port: 80
-    # 应用不认 OIDC 时，由网关在请求上加上用户名（README 的“网页入口和登录”）。
-    sso: proxy
-    proxy:
-      headers:
-        Remote-User: "{user}"
-  # 能放到底栏的页面（README 的“底栏页面”）。放不放由用户决定，插件改不了。
-  tabs:
-    - id: home
-      title: { zh: 主页, en: Home }
-      icon: tabs/home.svg
-      icon_selected: tabs/home-fill.svg
-      path: /
-      # 这个页面没做适配，用默认的 inset：页面夹在 App 的栏中间，不会被挡。
-      # 想让内容从栏下滚过，写 layout: edge-to-edge，并用 --wonton-inset-* 留出栏的位置。
-  permissions: []
-  # 上游 nginx 官方镜像，amd64 和 arm64 都有；上游没写最低内存，按本机空闲实测取整（实测约 24M，取 64M）。
+      OpenAI Codex lives in the chat as a bot: the model goes through the model gateway by default,
+      with no account and no key to fill in. It works in its own container under a read-only sandbox
+      and asks through confirmation cards before editing files or running commands outside it; Wonton
+      plugin tools are called from the chat too. To use a ChatGPT subscription, send /wonton login
+      and sign in with a device code.
+  release_notes: { zh: 首个版本。, en: First release. }
+  agent:
+    protocol: acp
+    # 官方账号登录（ADR-0035）：登录在 Codex 自己的程序里完成，链接和设备码发进聊天。
+    login:
+      - id: chatgpt
+        title: { zh: ChatGPT 账号, en: ChatGPT account }
+  bot:
+    display_name: { zh: Codex, en: Codex }
+  bots:
+    services: [agent, bridge]
+  permissions:
+    - matrix.bot
+    - tools
+    - models
+    # 设备码登录和登录后的官方模型请求都要出网。
+    - network.egress
   requirements:
     arch: [amd64, arm64]
-    memory: 64M
+    memory: 1G
