@@ -252,17 +252,16 @@ async def main() -> None:
         SOCKET.unlink()
     except FileNotFoundError:
         pass
+    login_socket = SOCKET.with_suffix(".login.sock")
+    try:
+        login_socket.unlink()
+    except FileNotFoundError:
+        pass
     listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     listener.bind(str(SOCKET))
     os.chmod(SOCKET, 0o600)
     listener.listen(8)
     listener.setblocking(False)
-    login_socket = SOCKET.with_suffix(".login.sock")
-    for path in (SOCKET, login_socket):
-        try:
-            path.unlink()
-        except FileNotFoundError:
-            pass
     login_listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     login_listener.bind(str(login_socket))
     os.chmod(login_socket, 0o600)
