@@ -114,8 +114,10 @@ def rewrite_auth_methods(line: str) -> str:
         message = json.loads(line)
     except ValueError:
         return line
-    if isinstance(message, dict) and "authMethods" in message:
-        message["authMethods"] = [
+    # initialize 的应答是 JSON-RPC result：{"result": {"authMethods": [...]}}。
+    if isinstance(message, dict) and isinstance(message.get("result"), dict) \
+            and "authMethods" in message["result"]:
+        message["result"]["authMethods"] = [
             {
                 "id": "chatgpt",
                 "name": "ChatGPT 账号（设备码）",

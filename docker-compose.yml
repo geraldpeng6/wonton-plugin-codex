@@ -2,7 +2,7 @@
 # run/ 子目录；bridge 的 crypto store 和 Matrix 令牌不给 agent，agent 的 HOME 和工作区不给 bridge。
 services:
   agent:
-    image: ghcr.io/geraldpeng6/wonton-plugin-codex:0.1.0@sha256:b8111d2f314f07d3687732c81b3c9e935a242f33b02faf95e7aab4d57c63eb33
+    image: ghcr.io/geraldpeng6/wonton-plugin-codex:0.1.0@sha256:183756667ed4c568503f506a939acd73c824777453492b8b387b3c00fbd98423
     # 镜像里固定用 65532，入口脚本不再降权；bridge 挂同一个 run/ 目录，两个服务的属主必须相同，否则核心拒绝安装。
     user: "65532:65532"
     restart: unless-stopped
@@ -17,6 +17,8 @@ services:
       WONTON_AGENT_WORKSPACE: /workspace
       # 无浏览器的容器：官方登录走设备码（codex login --device-auth），不用开网页。
       NO_BROWSER: "1"
+      # 会话和 MCP 连接的日志进容器日志，出问题时能对着它排查。
+      RUST_LOG: info
       # 插件网络是内部网络，到模型网关和 MCP 总线都直连；Docker 注入的代理变量会让内部请求走代理，这里清掉。
       HTTP_PROXY: ""
       HTTPS_PROXY: ""
