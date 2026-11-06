@@ -1,11 +1,15 @@
-# 云吞插件模板
+# Codex
 
-云吞（Wonton）的插件就是一个 `docker-compose.yml`，顶层多一个 `x-wonton` 字段，写明插件在云吞里的身份、网页入口和要的
-权限。一个插件一个 Git 仓库，仓库根目录就是插件包，发布就是打 tag。用户在 App 里装上插件，核心按清单起容器、接好登录，
-插件的网页在 App 里作为小程序打开。
+Codex 是住在云吞里的 Agent：OpenAI 的 Codex（经 Zed 的 codex-acp 适配器说 ACP）用核心分配的 Matrix 身份和主人聊天，
+经云吞模型网关调用模型，经 Wonton MCP 总线调用工具。模型默认不用账号、也不用填 key；要用 ChatGPT 订阅，在聊天里发
+`/wonton login` 用设备码登录官方账号。
 
-这个仓库是模板：一个能装上的示例插件（nginx 显示一个向用户问好的网页），加上检查、开发环境和发布三个脚本。从这个模板
-新建仓库，照着下面把示例换成你的应用。
+一个插件一个 Git 仓库，仓库根目录就是插件包，发布就是打 tag。下面大部分是写插件的通用指南，`scripts/` 三个脚本照常能用。
+
+## 图标
+
+`icon.svg` 是按插件规范手绘的线条图标（终端提示符），原创，随插件包以 MIT 许可证分发。Codex 和 OpenAI 是 OpenAI
+的商标；本插件不是 OpenAI 的官方出品。来源、上游程序和许可证的说明见 [NOTICE](NOTICE)。
 
 ## 准备
 
@@ -27,20 +31,28 @@ scripts/dev.sh up
 scripts/dev.sh install
 ```
 
-`up` 在本机起一套云吞，打印它的地址。示例（实例名取自目录名加 4 位随机数，端口随机）是
-`http://template3f2a.wonton.localhost:21234/`。浏览器打开，用 `scripts/dev.sh token` 输出的用户令牌登录。`install` 先列出
-插件要的权限，确认后装上，打印插件网页的地址。
+`up` 在本机起一套云吞，打印它的地址（实例名取自目录名加 4 位随机数，端口随机）。插件没有网页，装好以后核心在聊天列表里
+建好和它的加密私聊，在那里和它说话；App 或 `scripts/dev.sh pair` 把它加进客户端。`install` 先列出插件要的权限，确认后装上。
 
-示例网页经 `sso: proxy` 拿到用户名，打开就是“你好，<用户名>”。换成真实应用时，把示例的 `description`、`about`、`tags`
-换成你的，`web/`、compose 里的三个 `configs` 和 `sso: proxy` 及其 `proxy` 删掉（默认让应用自己登录），`webui.service`、
-`port` 换成你的，按下面的规则重写。Chrome、Firefox 和 curl 把 `*.localhost` 直接解析到本机，不用改 hosts。
+`docker-compose.yml` 的两个镜像按摘要固定：桥直接使用主仓库发布的镜像，不在插件仓库构建；agent 由
+`images/wonton-plugin-codex/` 构建。本地开发只构建 agent 并写回它的本地摘要，桥保留发布版的清单列表摘要。
+
+## 构建镜像
+
+```bash
+docker build -t ghcr.io/geraldpeng6/wonton-plugin-codex:0.1.0 -f images/wonton-plugin-codex/Dockerfile images/wonton-plugin-codex
+```
+
+构建出来的是本地 Agent 镜像，`docker image inspect -f '{{.Id}}'` 就是要写回 compose 的摘要。
+桥镜像由主仓库维护，`scripts/publish.sh` 只构建本仓库 `images/` 下的 Agent 镜像。
 
 ## 仓库里有什么
 
 | 路径 | 内容 |
 | --- | --- |
 | `docker-compose.yml` | 插件本身：compose 加上 `x-wonton` 清单 |
-| `icon.svg`、`web/` | 清单和 compose 引用的文件：图标、交给容器的配置和网页 |
+| `icon.svg` | 商店图标，来源和许可证见 `NOTICE` |
+| `images/wonton-plugin-codex/` | Agent 镜像：codex-acp 和 Codex CLI 的 Dockerfile、ACP 入口、模型提示词和上游许可证，不在插件包里 |
 | `screenshots/` | 商店详情页里的截图 |
 | `scripts/check.sh` | 检查插件包，规则和安装时一样 |
 | `scripts/dev.sh` | 开发环境：起一套云吞，装、重装、卸载插件，看日志 |
