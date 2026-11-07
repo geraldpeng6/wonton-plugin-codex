@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 """codex 的 ACP 入口：配置模型和登录方式，转发 unix socket ↔ codex-acp 的标准输入输出。
 
-- 没有官方登录态时，模型走模型网关：写 config.toml 指向网关，并用 model_catalog_json 补上网关
-  模型的元数据；缺了它，Codex 每一轮都会把 "Model metadata … not found" 警告当回复发出来。
-  API key 只以环境变量名引用，不把值写进配置。
-- $CODEX_HOME/auth.json 里有 ChatGPT 登录态时不写网关配置：模型请求直接发给官方，不把订阅
-  请求送进模型网关。配置在容器启动时写，登录成功后入口让容器退出重启，新配置即生效。
+- 模型网关可选：每次启动按 OPENAI_* 有没有值选路，整份重写 config.toml。有值时写网关配置
+  （model_provider、base_url，key 只以环境变量名引用），并用 model_catalog_json 补上网关模型
+  的元数据——缺了它，Codex 每一轮都会把 "Model metadata … not found" 警告当回复发出来。
+  为空（网关没装、没就绪或被卸掉）时不写网关配置，也删掉残留的元数据文件：Codex 走内置
+  openai provider，没有登录态时 new_session/prompt 返回 auth_required，桥把它转成“要先登录”
+  的提示，容器不崩。
+- $CODEX_HOME/auth.json 里有官方登录态（ChatGPT 或用户自己的 API key）时不写网关配置：模型
+  请求直接发给官方，不把订阅或自备 key 的请求送进模型网关。配置在容器启动时写，登录成功后
+  入口让容器退出重启，新配置即生效。
 - config.toml 只放行 Wonton MCP 这一个服务器（default_tools_approval_mode = "approve"）：
   Codex 不再为自己的确认发卡片，工具确认只归核心总线一张。实际连接由桥在 session/new 传入
   （codex-acp 会用它覆盖同名配置项），这里的条目只提供审批配置。
 - codex-acp 的 ChatGPT 登录方式在本机起回调服务器等浏览器，无浏览器的容器里链接发不出去；
-  入口把 initialize 里的登录方式改写成终端方式（codex login --device-auth），桥把链接和设备码
-  转发进聊天。改写只发生在转发流里，不改 codex-acp 本身。
+  入口把 initialize 里的登录方式改写成终端方式：ChatGPT 用设备码（codex login --device-auth），
+  自备 key 用 stdin（codex login --with-api-key），桥把链接、设备码和收到的 key 行转发进聊天。
+  改写只发生在转发流里，不改 codex-acp 本身。
 """
 import asyncio
 import json
@@ -43,15 +48,20 @@ def install_skills() -> None:
         target.write_bytes(source.read_bytes())
 
 
-def chatgpt_logged_in() -> bool:
+def has_own_auth() -> bool:
+    """auth.json 里有 ChatGPT 登录态或用户自己的 API key：模型请求发官方，不经网关。"""
     try:
-        return "tokens" in json.loads((CODEX_HOME / "auth.json").read_text())
+        auth = json.loads((CODEX_HOME / "auth.json").read_text())
     except (OSError, ValueError):
         return False
+    return "tokens" in auth or auth.get("OPENAI_API_KEY")
 
 
 def write_config(mcp_url: str) -> None:
-    """写 $CODEX_HOME/config.toml：MCP 审批配置总要写；模型按有没有官方登录态二选一。"""
+    """写 $CODEX_HOME/config.toml：MCP 审批配置总要写；模型按网关变量和登录态三选一。
+
+    每次启动整份重写：网关后来接入或被卸掉时，重启容器就切换，不会留着指向旧地址的配置。
+    """
     lines = [
         "# 由 wonton-plugin-codex 的入口脚本管理，手改会被覆盖。",
         "",
@@ -61,12 +71,16 @@ def write_config(mcp_url: str) -> None:
         'default_tools_approval_mode = "approve"',
         "",
     ]
-    if not chatgpt_logged_in():
-        model = os.environ["OPENAI_MODEL"]
-        base_url = os.environ["OPENAI_BASE_URL"]
-        if not model.strip() or not base_url.strip() or not os.environ["OPENAI_API_KEY"].strip():
-            raise ValueError("OPENAI_MODEL、OPENAI_BASE_URL 和 OPENAI_API_KEY 不能为空")
-        catalog = CODEX_HOME / "model-catalog.json"
+    gateway = (
+        os.environ.get("OPENAI_MODEL", "").strip(),
+        os.environ.get("OPENAI_BASE_URL", "").strip(),
+        os.environ.get("OPENAI_API_KEY", "").strip(),
+    )
+    catalog = CODEX_HOME / "model-catalog.json"
+    if has_own_auth():
+        lines[1] = "# 已有官方登录态：模型请求直接发给官方，不经模型网关。"
+    elif all(gateway):
+        model, base_url, _ = gateway
         write_catalog(catalog, model)
         lines = [
             "# 由 wonton-plugin-codex 的入口脚本管理，手改会被覆盖。",
@@ -83,7 +97,10 @@ def write_config(mcp_url: str) -> None:
             *lines[2:],
         ]
     else:
-        lines[1] = "# 已有 ChatGPT 登录态：模型请求直接发给官方，不经模型网关。"
+        # 网关没接入（变量缺失或不全）：不写网关配置，也清掉上次留下的元数据文件；Codex 走内置
+        # openai provider，没有登录态时 new_session/prompt 会返回 auth_required，桥把它
+        # 转成“要先登录”的提示。
+        catalog.unlink(missing_ok=True)
     (CODEX_HOME / "config.toml").write_text("\n".join(lines))
 
 
@@ -123,7 +140,13 @@ def rewrite_auth_methods(line: str) -> str:
                 "name": "ChatGPT 账号（设备码）",
                 "type": "terminal",
                 "args": ["login", "--device-auth"],
-            }
+            },
+            {
+                "id": "api-key",
+                "name": "OpenAI API key",
+                "type": "terminal",
+                "args": ["login", "--with-api-key"],
+            },
         ]
         return json.dumps(message, ensure_ascii=False, separators=(",", ":"))
     return line
@@ -187,8 +210,12 @@ async def relay_login(client: socket.socket, loop: asyncio.AbstractEventLoop) ->
     if not request_line:
         return
     request = json.loads(request_line)
+    args = request.get("args", [])
+    # --with-api-key 的 CLI 读 stdin 到 EOF 才收 key，而桥发一行文本后保持连接。入口在转发
+    # 第一行后关掉登录进程的 stdin，给 CLI 制造 EOF；桥那边照旧保持连接收输出帧。
+    line_then_eof = any("--with-api-key" in arg for arg in args)
     process = await asyncio.create_subprocess_exec(
-        CODEX_BIN, *request.get("args", []),
+        CODEX_BIN, *args,
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
@@ -214,26 +241,43 @@ async def relay_login(client: socket.socket, loop: asyncio.AbstractEventLoop) ->
 
     stdout_task = asyncio.create_task(pump_output(process.stdout, "out"))
     stderr_task = asyncio.create_task(pump_output(process.stderr, "err"))
-    input_task = asyncio.create_task(pump_input())
-    exit_task = asyncio.create_task(process.wait())
-    done, _ = await asyncio.wait({exit_task, input_task}, return_when=asyncio.FIRST_COMPLETED)
-    if input_task in done:
-        # 桥断开（取消、超时、桥退出）：登录进程可能还在等 stdin，必须结束并收回，
-        # 否则串行的 serve_login 会一直卡在这次登录上。
+    if line_then_eof:
+        line = await reader.readline()
+        if not line:
+            # 桥没发 key 就断开（取消、超时）：结束登录进程，收回这次串行的登录。
+            stdin.close()
+            process.kill()
+            await process.wait()
+            await asyncio.gather(stdout_task, stderr_task, return_exceptions=True)
+            return
+        stdin.write(line)
+        await stdin.drain()
         stdin.close()
-        try:
-            code = await asyncio.wait_for(process.wait(), 2)
-        except asyncio.TimeoutError:
-            process.terminate()
+        code = await process.wait()
+        # 输出泵收完再发退出帧：桥收到 exit 就停读，"Successfully logged in" 和失败原因
+        # 不能跟退出帧竞态。
+        await asyncio.gather(stdout_task, stderr_task, return_exceptions=True)
+    else:
+        input_task = asyncio.create_task(pump_input())
+        exit_task = asyncio.create_task(process.wait())
+        done, _ = await asyncio.wait({exit_task, input_task}, return_when=asyncio.FIRST_COMPLETED)
+        if input_task in done:
+            # 桥断开（取消、超时、桥退出）：登录进程可能还在等 stdin，必须结束并收回，
+            # 否则串行的 serve_login 会一直卡在这次登录上。
+            stdin.close()
             try:
                 code = await asyncio.wait_for(process.wait(), 2)
             except asyncio.TimeoutError:
-                process.kill()
-                code = await process.wait()
-    else:
-        code = exit_task.result()
-    input_task.cancel()
-    await asyncio.gather(stdout_task, stderr_task, exit_task, return_exceptions=True)
+                process.terminate()
+                try:
+                    code = await asyncio.wait_for(process.wait(), 2)
+                except asyncio.TimeoutError:
+                    process.kill()
+                    code = await process.wait()
+        else:
+            code = exit_task.result()
+        input_task.cancel()
+        await asyncio.gather(stdout_task, stderr_task, exit_task, return_exceptions=True)
     try:
         await to_socket({"exit": code})
     except OSError:
