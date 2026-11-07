@@ -16,6 +16,14 @@ docker build -t ghcr.io/geraldpeng6/wonton-plugin-codex:0.1.1 -f images/wonton-p
 构建出来的是本地 Agent 镜像，`docker image inspect -f '{{.Id}}'` 就是要写回 compose 的摘要。
 桥镜像由主仓库维护，`scripts/publish.sh` 只构建本仓库 `images/` 下的 Agent 镜像。
 
+## 聊天里的话题
+
+主人可以在聊天里另开话题并行派活：每条消息按所属话题进各自的会话，做完一轮在主对话里留一行不提示的提示，两边互相能看到
+对方的动向；两个话题要改同一个文件时，确认卡片默认等对方做完再改。
+
+桥默认在话题里沿用 `WONTON_ACP_MODE`，也就是 `read-only`：改文件仍要逐次确认。要让话题直接写工作区，把桥的
+`WONTON_ACP_TOPIC_MODE` 设成 `workspace-write`；Agent 不认这个模式时桥会退出到默认并在话题里说明。
+
 ## 图标
 
 `icon.svg` 是按插件规范手绘的线条图标（终端提示符），原创，随插件包以 MIT 许可证分发。Codex 和 OpenAI 是 OpenAI
