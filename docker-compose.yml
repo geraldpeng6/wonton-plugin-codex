@@ -70,7 +70,7 @@ services:
 x-wonton:
   spec: "0.6"
   id: ai.codex
-  version: 0.1.2
+  version: 0.1.3
   kind: agent
   title: { zh: Codex, en: Codex }
   description:
@@ -98,8 +98,8 @@ x-wonton:
       send /wonton login in the chat: sign in to a ChatGPT subscription with a device code, or paste
       your own OpenAI API key.
   release_notes:
-    zh: "适配新版核心的名单变量名，旧核心照常能装，用起来没有变化。"
-    en: "Adapts to the new core's allow-list variable name; still installs on older cores, nothing changes in use."
+    zh: "网关模型也注册 apply_patch 编辑工具：话题里两个会话改同一个文件时能出排队卡片。"
+    en: "Gateway models now get the apply_patch tool, so topics queue edits to the same file instead of overwriting silently."
   agent:
     protocol: acp
     # 官方账号登录（ADR-0035）：登录在 Codex 自己的程序里完成，链接和设备码发进聊天；

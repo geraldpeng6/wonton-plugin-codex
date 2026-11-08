@@ -109,6 +109,9 @@ def write_catalog(path: Path, model: str) -> None:
     entry = {
         "slug": model,
         "display_name": model,
+        # 网关模型不在 Codex 自带目录里，缺这一项时 Codex 不注册 apply_patch，只能拿 shell 改文件；
+        # 桥的改文件冲突表认 apply_patch 的 edit 工具调用，没有它就没有排队卡片。
+        "apply_patch_tool_type": "freeform",
         "supported_reasoning_levels": [],
         "shell_type": "default",
         "visibility": "none",
