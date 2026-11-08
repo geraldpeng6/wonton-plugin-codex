@@ -101,8 +101,8 @@ x-wonton:
       send /wonton login in the chat: sign in to a ChatGPT subscription with a device code, or paste
       your own OpenAI API key.
   release_notes:
-    zh: "网关模型也注册 apply_patch 编辑工具：话题里两个会话改同一个文件时能出排队卡片。"
-    en: "Gateway models now get the apply_patch tool, so topics queue edits to the same file instead of overwriting silently."
+    zh: "网关模型也注册 apply_patch 编辑工具，并把文件沙箱退回 Landlock：话题里两个会话改同一个文件时能出排队卡片，批准后的修改真正落盘。"
+    en: "Gateway models now get the apply_patch tool and the file sandbox falls back to Landlock: topics queue edits to the same file, and approved edits actually land."
   agent:
     protocol: acp
     # 官方账号登录（ADR-0035）：登录在 Codex 自己的程序里完成，链接和设备码发进聊天；
