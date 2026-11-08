@@ -49,7 +49,9 @@ services:
       WONTON_AGENT_WORKSPACE: /workspace
       WONTON_MATRIX_HOMESERVER: ${WONTON_MATRIX_HOMESERVER:?需要 Matrix 地址}
       WONTON_MATRIX_ACCESS_TOKEN: ${WONTON_MATRIX_ACCESS_TOKEN:?需要 Bot 的 Matrix 访问令牌}
-      WONTON_MATRIX_OWNER: ${WONTON_MATRIX_OWNER:?需要主人的 Matrix 用户 ID}
+      # 名单变量 0.9 起改叫 WONTON_MATRIX_ALLOWED_USERS；两个名字都传，新旧桥都能读。
+      WONTON_MATRIX_ALLOWED_USERS: ${WONTON_MATRIX_ALLOWED_USERS:-${WONTON_MATRIX_OWNER:?需要主人的 Matrix 用户 ID}}
+      WONTON_MATRIX_OWNER: ${WONTON_MATRIX_OWNER:-${WONTON_MATRIX_ALLOWED_USERS:?需要主人的 Matrix 用户 ID}}
       WONTON_MATRIX_HOME_ROOM: ${WONTON_MATRIX_HOME_ROOM:?需要主人与 Bot 的主房间}
       WONTON_MCP_URL: ${WONTON_MCP_URL:?需要 MCP 总线地址}
       # Codex 最严格可用的模式（ADR-0035 实测 read-only）：只读工作区，改文件和出网都先经确认卡片问主人。
@@ -68,7 +70,7 @@ services:
 x-wonton:
   spec: "0.6"
   id: ai.codex
-  version: 0.1.1
+  version: 0.1.2
   kind: agent
   title: { zh: Codex, en: Codex }
   description:
@@ -96,11 +98,8 @@ x-wonton:
       send /wonton login in the chat: sign in to a ChatGPT subscription with a device code, or paste
       your own OpenAI API key.
   release_notes:
-    zh: 模型网关改成可选：没接网关时 Agent 照常启动，用 ChatGPT 设备码或自己的 OpenAI API key 登录；网关后来接入或卸掉时重启即切换。/wonton login 新增 API key 登录方式。
-    en: >-
-      The model gateway is now optional: without it the agent still starts, signing in with a
-      ChatGPT device code or your own OpenAI API key; restart switches over when the gateway is
-      connected or removed. /wonton login gains an API key method.
+    zh: "适配新版核心的名单变量名，旧核心照常能装，用起来没有变化。"
+    en: "Adapts to the new core's allow-list variable name; still installs on older cores, nothing changes in use."
   agent:
     protocol: acp
     # 官方账号登录（ADR-0035）：登录在 Codex 自己的程序里完成，链接和设备码发进聊天；
