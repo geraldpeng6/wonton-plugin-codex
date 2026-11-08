@@ -98,11 +98,8 @@ x-wonton:
       send /wonton login in the chat: sign in to a ChatGPT subscription with a device code, or paste
       your own OpenAI API key.
   release_notes:
-    zh: 模型网关改成可选：没接网关时 Agent 照常启动，用 ChatGPT 设备码或自己的 OpenAI API key 登录；网关后来接入或卸掉时重启即切换。/wonton login 新增 API key 登录方式。
-    en: >-
-      The model gateway is now optional: without it the agent still starts, signing in with a
-      ChatGPT device code or your own OpenAI API key; restart switches over when the gateway is
-      connected or removed. /wonton login gains an API key method.
+    zh: "适配新版核心的名单变量名，旧核心照常能装，用起来没有变化。"
+    en: "Adapts to the new core's allow-list variable name; still installs on older cores, nothing changes in use."
   agent:
     protocol: acp
     # 官方账号登录（ADR-0035）：登录在 Codex 自己的程序里完成，链接和设备码发进聊天；
