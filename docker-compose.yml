@@ -57,6 +57,9 @@ services:
       # Codex 最严格可用的模式（ADR-0035 实测 read-only）：只读工作区，改文件和出网都先经确认卡片问主人。
       # 它自带的沙箱在普通 Docker 容器里建不了命名空间，更宽的模式不可用。
       WONTON_ACP_MODE: read-only
+      # codex-acp 唯一的“改前先问”模式就是 read-only：话题里也逐次确认，同改一个文件时出排队卡片。
+      # 不设时桥仍用上面的模式，但会在每个话题里误报没有这种模式。
+      WONTON_ACP_TOPIC_MODE: read-only
     volumes:
       - ${WONTON_BOT_DATA}/bridge:/data/bridge
       - ${WONTON_BOT_DATA}/run:/data/run
