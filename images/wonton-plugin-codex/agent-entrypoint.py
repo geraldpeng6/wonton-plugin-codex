@@ -74,6 +74,7 @@ def write_config(mcp_url: str) -> None:
         # apply_patch 一律失败；退回 Landlock（内核 LSM，容器内可用），沙箱才落得了地。
         "[features]",
         "use_legacy_landlock = true",
+        "use_linux_sandbox_bwrap = false",
         "",
     ]
     gateway = (
