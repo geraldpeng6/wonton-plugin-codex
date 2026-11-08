@@ -25,8 +25,7 @@ docker build -t ghcr.io/geraldpeng6/wonton-plugin-codex:0.1.1 -f images/wonton-p
 `WONTON_ACP_TOPIC_MODE` 可以换掉话题的模式，取值必须是 codex-acp 报得出的（它只有 `read-only`、`auto`、`full-access`）：
 
 - `read-only`：和默认一样逐次确认；配了它桥就知道这是“改前先问”的模式，不再在话题里提示没有这种模式。
-- `auto`：Codex 的宽沙箱在本插件容器里建不起来，实测仍逐次确认，排队卡片照常；沙箱可用的环境里它才会直接改
-  文件、只留事后冲突提示。
+- `auto`：不出确认卡片，直接改文件；两个会话同改一个文件时只在事后提示冲突。
 - `workspace-write` 不是 codex-acp 的模式：桥退回 `read-only`，并在这个话题里提示没有“改前先问”的模式。
 
 compose 里设的是 `read-only`。不设时桥会沿用 `WONTON_ACP_MODE`，行为一样，只是每个话题都会提示没有“改前先问”的模式。
