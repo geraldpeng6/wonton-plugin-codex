@@ -10,7 +10,7 @@ Codex 是住在云吞里的 Agent：OpenAI 的 Codex（经 Zed 的 codex-acp 适
 ## 构建镜像
 
 ```bash
-docker build -t ghcr.io/geraldpeng6/wonton-plugin-codex:0.1.1 -f images/wonton-plugin-codex/Dockerfile images/wonton-plugin-codex
+docker build -t ghcr.io/geraldpeng6/wonton-plugin-codex:0.1.3 -f images/wonton-plugin-codex/Dockerfile images/wonton-plugin-codex
 ```
 
 构建出来的是本地 Agent 镜像，`docker image inspect -f '{{.Id}}'` 就是要写回 compose 的摘要。
