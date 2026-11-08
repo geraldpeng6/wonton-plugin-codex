@@ -49,9 +49,7 @@ services:
       WONTON_AGENT_WORKSPACE: /workspace
       WONTON_MATRIX_HOMESERVER: ${WONTON_MATRIX_HOMESERVER:?需要 Matrix 地址}
       WONTON_MATRIX_ACCESS_TOKEN: ${WONTON_MATRIX_ACCESS_TOKEN:?需要 Bot 的 Matrix 访问令牌}
-      # 名单变量 0.9 起改叫 WONTON_MATRIX_ALLOWED_USERS；两个名字都传，新旧桥都能读。
-      WONTON_MATRIX_ALLOWED_USERS: ${WONTON_MATRIX_ALLOWED_USERS:-${WONTON_MATRIX_OWNER:?需要主人的 Matrix 用户 ID}}
-      WONTON_MATRIX_OWNER: ${WONTON_MATRIX_OWNER:-${WONTON_MATRIX_ALLOWED_USERS:?需要主人的 Matrix 用户 ID}}
+      WONTON_MATRIX_ALLOWED_USERS: ${WONTON_MATRIX_ALLOWED_USERS:?需要主人的 Matrix 用户 ID}
       WONTON_MATRIX_HOME_ROOM: ${WONTON_MATRIX_HOME_ROOM:?需要主人与 Bot 的主房间}
       WONTON_MCP_URL: ${WONTON_MCP_URL:?需要 MCP 总线地址}
       # Codex 最严格可用的模式（ADR-0035 实测 read-only）：只读工作区，改文件和出网都先经确认卡片问主人。
@@ -71,9 +69,9 @@ services:
       start_interval: 2s
 
 x-wonton:
-  spec: "0.6"
+  spec: "0.9"
   id: ai.codex
-  version: 0.1.3
+  version: 0.1.4
   kind: agent
   title: { zh: Codex, en: Codex }
   description:
@@ -101,8 +99,8 @@ x-wonton:
       send /wonton login in the chat: sign in to a ChatGPT subscription with a device code, or paste
       your own OpenAI API key.
   release_notes:
-    zh: "网关模型也注册 apply_patch 编辑工具，并把文件沙箱退回 Landlock：话题里两个会话改同一个文件时能出排队卡片，批准后的修改真正落盘。"
-    en: "Gateway models now get the apply_patch tool and the file sandbox falls back to Landlock: topics queue edits to the same file, and approved edits actually land."
+    zh: "改用新的名单变量，Bot 只听名单里的人（核心 0.9 起，不再兼容旧变量）。需要插件规范 0.9。"
+    en: "Switches to the new allow-list variable so a bot follows the people on the list (core 0.9 and later; the old variable is gone). Requires spec 0.9."
   agent:
     protocol: acp
     # 官方账号登录（ADR-0035）：登录在 Codex 自己的程序里完成，链接和设备码发进聊天；
