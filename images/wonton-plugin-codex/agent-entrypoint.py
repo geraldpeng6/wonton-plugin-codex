@@ -70,6 +70,12 @@ def write_config(mcp_url: str) -> None:
         "enabled = false",
         'default_tools_approval_mode = "approve"',
         "",
+        # Codex 0.137 起文件沙箱默认用 bubblewrap，在容器里起不了 userns，批准后的
+        # apply_patch 一律失败；退回 Landlock（内核 LSM，容器内可用），沙箱才落得了地。
+        "[features]",
+        "use_legacy_landlock = true",
+        "use_linux_sandbox_bwrap = false",
+        "",
     ]
     gateway = (
         os.environ.get("OPENAI_MODEL", "").strip(),
@@ -109,6 +115,9 @@ def write_catalog(path: Path, model: str) -> None:
     entry = {
         "slug": model,
         "display_name": model,
+        # 网关模型不在 Codex 自带目录里，缺这一项时 Codex 不注册 apply_patch，只能拿 shell 改文件；
+        # 桥的改文件冲突表认 apply_patch 的 edit 工具调用，没有它就没有排队卡片。
+        "apply_patch_tool_type": "freeform",
         "supported_reasoning_levels": [],
         "shell_type": "default",
         "visibility": "none",
