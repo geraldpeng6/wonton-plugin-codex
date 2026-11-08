@@ -21,11 +21,12 @@ docker build -t ghcr.io/geraldpeng6/wonton-plugin-codex:0.1.1 -f images/wonton-p
 主人可以在聊天里另开话题并行派活：每条消息按所属话题进各自的会话，做完一轮在主对话里留一行不提示的提示，两边互相能看到
 对方的动向；两个话题要改同一个文件时，确认卡片默认等对方做完再改。
 
-话题和主对话一样用 `read-only`：改文件前逐次确认，所以同改一个文件时能看到排队卡片。`WONTON_ACP_TOPIC_MODE` 可以
-换掉话题的模式，取值必须是 codex-acp 报得出的（它只有 `read-only`、`auto`、`full-access`）：
+话题和主对话一样用 `read-only`：改文件前逐次确认，所以同改一个文件时能看到排队卡片（默认等对方做完再改）。
+`WONTON_ACP_TOPIC_MODE` 可以换掉话题的模式，取值必须是 codex-acp 报得出的（它只有 `read-only`、`auto`、`full-access`）：
 
-- `auto`：话题在工作区里直接改文件，不出确认卡片；和主对话同改一个文件时只能事后在两边提示冲突。
-- `full-access`：连工作区外也能直接改，也不问。
+- `read-only`：和默认一样逐次确认；配了它桥就知道这是“改前先问”的模式，不再在话题里提示没有这种模式。
+- `auto`：Codex 的宽沙箱在本插件容器里建不起来，实测仍逐次确认，排队卡片照常；沙箱可用的环境里它才会直接改
+  文件、只留事后冲突提示。
 - `workspace-write` 不是 codex-acp 的模式：桥退回 `read-only`，并在这个话题里提示没有“改前先问”的模式。
 
 compose 里设的是 `read-only`。不设时桥会沿用 `WONTON_ACP_MODE`，行为一样，只是每个话题都会提示没有“改前先问”的模式。
