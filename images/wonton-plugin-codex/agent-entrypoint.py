@@ -70,6 +70,11 @@ def write_config(mcp_url: str) -> None:
         "enabled = false",
         'default_tools_approval_mode = "approve"',
         "",
+        # Codex 0.137 起文件沙箱默认用 bubblewrap，在容器里起不了 userns，批准后的
+        # apply_patch 一律失败；退回 Landlock（内核 LSM，容器内可用），沙箱才落得了地。
+        "[features]",
+        "use_legacy_landlock = true",
+        "",
     ]
     gateway = (
         os.environ.get("OPENAI_MODEL", "").strip(),
