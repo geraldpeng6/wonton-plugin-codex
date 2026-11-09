@@ -20,7 +20,7 @@ services:
       NO_BROWSER: "1"
       # 会话和 MCP 连接的日志进容器日志，出问题时能对着它排查。
       RUST_LOG: info
-      # 出网代理由核心注入（ADR-0023）：登录和登录后的官方模型请求经它出去，内部地址核心已写进
+      # 出网代理由核心注入：登录和登录后的官方模型请求经它出去，内部地址核心已写进
       # NO_PROXY，不会绕道。这里不写代理变量，写了空值就会把核心的注入顶掉。
     volumes:
       - ${WONTON_BOT_DATA:?需要 Bot 数据目录}/agent:/data/agent
@@ -52,7 +52,7 @@ services:
       WONTON_MATRIX_ALLOWED_USERS: ${WONTON_MATRIX_ALLOWED_USERS:?需要主人的 Matrix 用户 ID}
       WONTON_MATRIX_HOME_ROOM: ${WONTON_MATRIX_HOME_ROOM:?需要主人与 Bot 的主房间}
       WONTON_MCP_URL: ${WONTON_MCP_URL:?需要 MCP 总线地址}
-      # Codex 最严格可用的模式（ADR-0035 实测 read-only）：只读工作区，改文件和出网都先经确认卡片问主人。
+      # Codex 最严格可用的模式，实测只有 read-only：只读工作区，改文件和出网都先经确认卡片问主人。
       # 它自带的沙箱在普通 Docker 容器里建不了命名空间，更宽的模式不可用。
       WONTON_ACP_MODE: read-only
       # codex-acp 唯一的“改前先问”模式就是 read-only：话题里也逐次确认，同改一个文件时出排队卡片。
@@ -103,7 +103,7 @@ x-wonton:
     en: "Switches to the new allow-list variable so a bot follows the people on the list (core 0.9 and later; the old variable is gone). Requires spec 0.9."
   agent:
     protocol: acp
-    # 官方账号登录（ADR-0035）：登录在 Codex 自己的程序里完成，链接和设备码发进聊天；
+    # 官方账号登录：登录在 Codex 自己的程序里完成，链接和设备码发进聊天；
     # 没接模型网关时也可以贴自己的 OpenAI API key，同样经终端登录收进 stdin。
     login:
       - id: chatgpt
