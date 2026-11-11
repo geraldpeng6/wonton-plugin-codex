@@ -1,6 +1,6 @@
 # Codex
 
-开发流程见[插件开发指南](https://github.com/geraldpeng6/wonton-docs/blob/main/develop.md)。
+开发流程见[插件开发指南](https://github.com/wontonapp/wonton-docs/blob/main/develop.md)。
 
 Codex 是住在云吞里的 Agent：OpenAI 的 Codex（经 Zed 的 codex-acp 适配器说 ACP）用核心分配的 Matrix 身份和主人聊天，
 经 Wonton MCP 总线调用工具。模型网关接好时默认走网关，不用账号、也不用填 key；没接网关时 Agent 照常启动，在聊天里发
