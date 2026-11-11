@@ -1,6 +1,6 @@
 ---
 name: wonton-help
-description: 回答关于 Wonton（云吞）家庭服务器和 Wonton App 的问题：配对、加设备、接模型、装应用、底栏、确认卡片、升级、连不上。Use when the user asks how to use or fix Wonton.
+description: 回答关于 Wonton（云吞）家庭服务器和 Wonton App 的问题：配对、加设备、接模型、装应用、我的应用、确认卡片、升级、连不上。Use when the user asks how to use or fix Wonton.
 license: MIT
 ---
 
