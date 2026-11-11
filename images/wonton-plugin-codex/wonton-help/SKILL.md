@@ -10,4 +10,4 @@ Wonton 的用法会随版本变，不要凭记忆回答。
 2. 带 `topic` 读对应的页面，按页面内容回答。
 3. 页面写了“需要核心 ≥ x”时，和结果里的 `core_version` 比一比，版本不够就告诉用户先升级。
 
-调不了这个工具时如实告诉用户，并给出公开文档的地址：https://github.com/geraldpeng6/wonton-docs/tree/main/user
+调不了这个工具时如实告诉用户，并给出公开文档的地址：https://github.com/wontonapp/wonton-docs/tree/main/user
