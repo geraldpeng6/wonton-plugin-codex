@@ -35,7 +35,7 @@ services:
       start_interval: 2s
 
   bridge:
-    image: ghcr.io/geraldpeng6/wonton-acp-bridge:main-83d4297@sha256:6b0645e4cd8a5b80b6c25e4c17334c8d4621b9959756902785bae58b558b2326
+    image: ghcr.io/wontonapp/wonton-acp-bridge:0.2.1@sha256:4523c3cfef196d27521d8eaa4f4bb33784fa0fc01e1fe3071f6eb39ff0721c15
     user: "65532:65532"
     restart: unless-stopped
     depends_on:
@@ -71,7 +71,7 @@ services:
 x-wonton:
   spec: "0.9"
   id: ai.codex
-  version: 0.1.4
+  version: 0.1.5
   kind: agent
   title: { zh: Codex, en: Codex }
   description:
@@ -99,8 +99,8 @@ x-wonton:
       send /wonton login in the chat: sign in to a ChatGPT subscription with a device code, or paste
       your own OpenAI API key.
   release_notes:
-    zh: "改用新的名单变量，Bot 只听名单里的人（核心 0.9 起，不再兼容旧变量）。需要插件规范 0.9。"
-    en: "Switches to the new allow-list variable so a bot follows the people on the list (core 0.9 and later; the old variable is gone). Requires spec 0.9."
+    zh: "内置的 ACP bridge 升到 0.2.1 正式镜像。"
+    en: "Ships the 0.2.1 release image of the ACP bridge."
   agent:
     protocol: acp
     # 官方账号登录：登录在 Codex 自己的程序里完成，链接和设备码发进聊天；
