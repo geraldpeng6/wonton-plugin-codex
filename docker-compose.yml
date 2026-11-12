@@ -35,7 +35,7 @@ services:
       start_interval: 2s
 
   bridge:
-    image: ghcr.io/wontonapp/wonton-acp-bridge:0.2.1@sha256:4523c3cfef196d27521d8eaa4f4bb33784fa0fc01e1fe3071f6eb39ff0721c15
+    image: ghcr.io/wontonapp/wonton-acp-bridge:0.2.3@sha256:b3d4b06bf969125ef35dbdccff1b86df1ce268e6ee63f440e60cc72c209eb3c4
     user: "65532:65532"
     restart: unless-stopped
     depends_on:
